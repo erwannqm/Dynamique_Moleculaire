@@ -1,0 +1,9 @@
+# System temperature : 
+T_sys = m / (len(N) * kB) * np.sum(C_n[2]**2)
+print(T_sys)
+
+def autocorr_one_step(C_0, C_n):
+    v_0_list = C_0[2]
+    v_t_list = C_n[2]
+    gamma = np.sum(v_0_list * v_t_list)
+    return(gamma)
