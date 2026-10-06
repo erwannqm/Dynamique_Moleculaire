@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy
 
 # PARAMETRES
 
@@ -52,14 +51,10 @@ def verlet_vitesse(C, dt, k, m, sigma):
 
 def E_m(C):
     X, V = C[1], C[2]
-    E_c = 0
-    E_p = 0
-    for i in range(len(X)):
-        E_c += 1/2 * m * V[i]**2
-        # E_p = epsilon*(((sigma/V_n)**12) - 2*(sigma/V_n)**6) => potentiel de Lennard-Jones on le mettra parès
-        E_p += 1/2 * k * (X[i] - X[i-1] - sigma)**2
-    E_m = E_c + E_p
-    return E_m
+    E_c = 1/2 * m * np.sum(V**2)
+    # E_p = epsilon*(((sigma/V_n)**12) - 2*(sigma/V_n)**6) => potentiel de Lennard-Jones on le mettra parès
+    E_p = 1/2 * k * np.sum((X[1:] - X[:-1] - sigma)**2)
+    return E_c + E_p
 
 
 def temperature_microcanonique(n, m, kB, V):
@@ -76,8 +71,16 @@ def autocorr_one_step(C_0, C_n):
 
 
 def densite_etats(gamma):
-    g = np.fft.fft(gamma)
-    return g
+    """Calcule la densité d'états vibrationnels g(w) à partir de la fonction d'autocorrélation gamma(t)"""
+    N = len(gamma)
+    
+    g = np.abs(np.fft.rfft(gamma))
+    omega = 2*np.pi*np.fft.rfftfreq(N, d=dt)
+
+    # on normalise la densité d'états
+    integrale = np.trapezoid(g, omega)
+    g = g/integrale
+    return omega, g
 
 
 # INITIALISATION DES TABLEAUX
@@ -122,14 +125,8 @@ for i in range(1, 1000):
     C.append(C_i)
     E.append(E_m(C_i))
     Autocorr_list.append(autocorr_one_step(C_0, C_i))
+
    
-
-print(len(Autocorr_list))
-
-
-# gamma = np.sum(Autocorr_list)
-
-
 '''
 print("Etat initial C :")
 print(C[0])
@@ -149,7 +146,7 @@ fig, axes = plt.subplots(3, 1, figsize=(8, 11), constrained_layout=True)
 
 axes[0].hist(np.array(a) * 1e10, bins=40, color="royalblue", edgecolor="black", alpha=0.75)
 axes[0].axvline(sigma * 1e10, color="crimson", linestyle="--", linewidth=1.5, label=r"$\sigma$ (Equilibrium)")
-axes[0].set_title("Distribution of Interatomic Distances", fontsize=12, fontweight="bold")
+axes[0].set_title("Distribution of Interatomic Distances", fontsize=12)
 axes[0].set_xlabel(r"Distance $r_{i,i+1}$ (Å)")
 axes[0].set_ylabel("Count")
 axes[0].legend(loc="upper right")
@@ -158,7 +155,7 @@ axes[0].grid(True, linestyle=":", alpha=0.6)
 # 2. Total Mechanical Energy Evolution
 t_plot = np.array(t[1:]) * 1e12  # Convert time to picoseconds (ps)
 axes[1].plot(t_plot, E[1:], color="forestgreen", linewidth=1.2)
-axes[1].set_title(r"Mechanical Energy $E_m(t)$ vs Time", fontsize=12, fontweight="bold")
+axes[1].set_title(r"Mechanical Energy $E_m(t)$ vs Time", fontsize=12)
 axes[1].set_xlabel("Time (ps)")
 axes[1].set_ylabel(r"$E_m$ (J)")
 axes[1].grid(True, linestyle=":", alpha=0.6)
@@ -166,9 +163,20 @@ axes[1].grid(True, linestyle=":", alpha=0.6)
 # 3. Velocity Autocorrelation Function (VACF)
 axes[2].plot(t_plot, Autocorr_list[1:]/Autocorr_list[0], color="darkorange", linewidth=1.2)
 axes[2].axhline(0, color="black", linestyle="--", linewidth=0.8, alpha=0.7)
-axes[2].set_title(r"Velocity Autocorrelation Function $\gamma(t)$", fontsize=12, fontweight="bold")
+axes[2].set_title(r"Velocity Autocorrelation Function $\gamma(t)$", fontsize=12)
 axes[2].set_xlabel("Lag Time $t$ (ps)")
 axes[2].set_ylabel(r"$\gamma(t)$ (m$^2$/s$^2$)")
+axes[2].grid(True, linestyle=":", alpha=0.6)
+
+plt.show()
+
+
+omega, g_omega = densite_etats(Autocorr_list)
+plt.figure(figsize=(8,5))
+plt.plot(omega, g_omega, color="purple", linewidth=1.2)
+plt.title(r"Densité d'états vibrationnels $g(\omega)$", fontsize=12)
+plt.xlabel(r"Pulsation $\omega$ (rad/s)")
+plt.ylabel(r"$g(\omega)$ normalisée (s/rad)")
 axes[2].grid(True, linestyle=":", alpha=0.6)
 
 plt.show()
