@@ -4,7 +4,10 @@ import matplotlib.pyplot as plt
 # PARAMETRES
 
 n = 5000                # nombre d'atomes
+
+n_steps = 10000         # nombre de pas de temps
 dt = 5e-14              # pas de temps
+
 sigma = 4e-10           # distance interatomique
 L = n*sigma             # longueur de la chaîne
 kB = 1.38e-23
@@ -21,7 +24,6 @@ v_moy = np.sqrt(kB*T/m) # vitesse moyenne des particules en m/s
 
 C = []                  # liste contenant toutes matrices d'état
 E = []                  # liste contenant toutes les énergies mécaniques au cours du temps
-
 
 # FONCTIONS
 
@@ -117,16 +119,15 @@ E = [E_m(C_0)]
 Autocorr_list = [autocorr_one_step(C_0, C_0)]
 t = [0]
 
-for i in range(1, 1000):
-    t.append(i * dt)
-    
+for i in range(1, n_steps):
+    t.append(i*dt)
+
     C_i = verlet_vitesse(C[-1], dt, k, m, sigma)
     
     C.append(C_i)
     E.append(E_m(C_i))
     Autocorr_list.append(autocorr_one_step(C_0, C_i))
 
-   
 '''
 print("Etat initial C :")
 print(C[0])
@@ -141,7 +142,7 @@ for i in range(len(X_n)-1):
     a.append(X_n[i+1] - X_n[i])
     
     
-    
+t_plot = np.array(t[1:]) * 1e12  # Convert time to picoseconds (ps)
 fig, axes = plt.subplots(3, 1, figsize=(8, 11), constrained_layout=True)
 
 axes[0].hist(np.array(a) * 1e10, bins=40, color="royalblue", edgecolor="black", alpha=0.75)
@@ -153,7 +154,6 @@ axes[0].legend(loc="upper right")
 axes[0].grid(True, linestyle=":", alpha=0.6)
 
 # 2. Total Mechanical Energy Evolution
-t_plot = np.array(t[1:]) * 1e12  # Convert time to picoseconds (ps)
 axes[1].plot(t_plot, E[1:], color="forestgreen", linewidth=1.2)
 axes[1].set_title(r"Mechanical Energy $E_m(t)$ vs Time", fontsize=12)
 axes[1].set_xlabel("Time (ps)")
@@ -177,6 +177,6 @@ plt.plot(omega, g_omega, color="purple", linewidth=1.2)
 plt.title(r"Densité d'états vibrationnels $g(\omega)$", fontsize=12)
 plt.xlabel(r"Pulsation $\omega$ (rad/s)")
 plt.ylabel(r"$g(\omega)$ normalisée (s/rad)")
-axes[2].grid(True, linestyle=":", alpha=0.6)
+plt.grid(True, linestyle=":", alpha=0.6)
 
 plt.show()
